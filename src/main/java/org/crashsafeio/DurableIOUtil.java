@@ -49,15 +49,6 @@ public class DurableIOUtil {
       return result.toRealPath();
     }
 
-    // TODO: move this comment to FSyncDirectoryOnClose
-    // Open the parent BEFORE creating the folder.  We must do this because the contract
-    // for channel.force(true) states:
-    //  > when this method returns it is guaranteed that all changes made to the file
-    //  > SINCE THIS CHANNEL WAS CREATED, or since this method was last invoked, will
-    //  > have been written to that device
-    // The phrase in CAPS suggests that force() is allowed to NOT sync changes made before
-    // creating the channel object---in other words, we need to open the channel before
-    // the change if we want to sync our change.
     try (FSyncDirectoryOnClose ignored = new FSyncDirectoryOnClose(path)) {
       Files.createDirectory(result);
     }
