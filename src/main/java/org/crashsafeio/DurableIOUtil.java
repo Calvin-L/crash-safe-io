@@ -14,6 +14,9 @@ import java.util.Stack;
 
 public class DurableIOUtil {
 
+  /** Utility class is not to be instantiated */
+  private DurableIOUtil() { }
+
   /**
    * Helper for {@link #createFolders(Path)}.
    * <p>Precondition: <code>path</code> durably exists and is not a symlink.
