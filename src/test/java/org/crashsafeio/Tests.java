@@ -7,6 +7,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystemException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -98,6 +99,49 @@ public class Tests {
     DurableIOUtil.move(dir.resolve("child"), dir.resolve("target"));
     assert !Files.exists(dir.resolve("child"));
     assert new String(Files.readAllBytes(dir.resolve("target")), StandardCharsets.UTF_8).equals("hello");
+  }
+
+  @Test
+  public void testMoveOverwritesFiles() throws IOException {
+    Path dir = Files.createTempDirectory(null);
+    DurableIOUtil.write(dir.resolve("child"), "hello".getBytes(StandardCharsets.UTF_8));
+    DurableIOUtil.write(dir.resolve("target"), "goodbye".getBytes(StandardCharsets.UTF_8));
+    assert Files.exists(dir.resolve("target"));
+    assert new String(Files.readAllBytes(dir.resolve("child")), StandardCharsets.UTF_8).equals("hello");
+    DurableIOUtil.move(dir.resolve("child"), dir.resolve("target"));
+    assert !Files.exists(dir.resolve("child"));
+    assert new String(Files.readAllBytes(dir.resolve("target")), StandardCharsets.UTF_8).equals("hello");
+  }
+
+  @Test
+  public void testMoveDoesNotOverwriteEmptyFolder() throws IOException {
+    Path dir = Files.createTempDirectory(null);
+    DurableIOUtil.write(dir.resolve("child"), "hello".getBytes(StandardCharsets.UTF_8));
+    Files.createDirectory(dir.resolve("target"));
+    assert new String(Files.readAllBytes(dir.resolve("child")), StandardCharsets.UTF_8).equals("hello");
+    try {
+      DurableIOUtil.move(dir.resolve("child"), dir.resolve("target"));
+      assert false;
+    } catch (FileSystemException ignored) {
+      assert new String(Files.readAllBytes(dir.resolve("child")), StandardCharsets.UTF_8).equals("hello");
+      assert Files.isDirectory(dir.resolve("target"));
+    }
+  }
+
+  @Test
+  public void testMoveDoesNotOverwriteNonEmptyFolders() throws IOException {
+    Path dir = Files.createTempDirectory(null);
+    DurableIOUtil.write(dir.resolve("child"), "hello".getBytes(StandardCharsets.UTF_8));
+    Files.createDirectory(dir.resolve("target"));
+    Files.createFile(dir.resolve("target").resolve("subchild"));
+    try {
+      DurableIOUtil.move(dir.resolve("child"), dir.resolve("target"));
+      assert false;
+    } catch (FileSystemException ignored) {
+      assert new String(Files.readAllBytes(dir.resolve("child")), StandardCharsets.UTF_8).equals("hello");
+      assert Files.isDirectory(dir.resolve("target"));
+      assert Files.exists(dir.resolve("target").resolve("subchild"));
+    }
   }
 
 }

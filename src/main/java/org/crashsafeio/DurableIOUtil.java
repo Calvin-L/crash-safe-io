@@ -184,8 +184,8 @@ public class DurableIOUtil {
    * @throws java.nio.file.AtomicMoveNotSupportedException if the system does not
    *  support atomic move, or if the move cannot be done atomically because the
    *  source and destination are on different filesystems
-   * @throws DirectoryNotEmptyException if the target is a directory that cannot
-   *  be overwritten because it contains entries
+   * @throws java.nio.file.FileSystemException if the target already exists and is
+   *  a directory
    * @throws SecurityException if there is a security manager that prevents writes
    *  to either the source or target
    * @throws IOException if there is an I/O error, for instance because the source
