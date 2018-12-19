@@ -211,6 +211,27 @@ public class DurableIOUtil {
     }
   }
 
+  /**
+   * Write some bytes to a file, creating the file and all necessary intermediate
+   * directories if they do not exist.
+   *
+   * <p>
+   *   Calling this method is equivalent to calling
+   *   <code>{@link #write(Path, InputStream) write}(file, new {@link java.io.ByteArrayInputStream ByteArrayInputStream}(bytes))</code>,
+   *   but has slightly better performance since it does not read the bytes
+   *   into a local buffer before writing them to the file.
+   * </p>
+   * @param file the file to create or overwrite
+   * @param bytes the bytes to write
+   * @throws IOException
+   */
+  public static void write(Path file, byte[] bytes) throws IOException {
+    try (OutputStream out = new AtomicDurableOutputStream(file)) {
+      out.write(bytes);
+      createFolders(file.getParent());
+    }
+  }
+
   public static void write(Path file, InputStream data) throws IOException {
     byte[] buffer = new byte[1024 * 8];
     try (OutputStream out = new BufferedOutputStream(new AtomicDurableOutputStream(file))) {
