@@ -64,4 +64,29 @@ public class Tests {
     assert Arrays.equals(Files.readAllBytes(out), bytes);
   }
 
+  @Test
+  public void testFileDeletion() throws IOException {
+    Path file = Files.createTempFile(null, null);
+    Files.write(file, "hello".getBytes(StandardCharsets.UTF_8));
+    DurableIOUtil.atomicallyDelete(file);
+    assert !Files.exists(file);
+  }
+
+  @Test
+  public void testEmptyDirectoryDeletion() throws IOException {
+    Path dir = Files.createTempDirectory(null);
+    DurableIOUtil.atomicallyDelete(dir);
+    assert !Files.exists(dir);
+  }
+
+  @Test
+  public void testTreeDeletion() throws IOException {
+    Path dir = Files.createTempDirectory(null);
+    Files.createDirectory(dir.resolve("subfolder"));
+    Files.createFile(dir.resolve("subfolder").resolve("subchild"));
+    Files.write(dir.resolve("child"), "hello".getBytes(StandardCharsets.UTF_8));
+    DurableIOUtil.atomicallyDelete(dir);
+    assert !Files.exists(dir);
+  }
+
 }
