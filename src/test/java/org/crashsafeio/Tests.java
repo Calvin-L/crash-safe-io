@@ -84,9 +84,20 @@ public class Tests {
     Path dir = Files.createTempDirectory(null);
     Files.createDirectory(dir.resolve("subfolder"));
     Files.createFile(dir.resolve("subfolder").resolve("subchild"));
-    Files.write(dir.resolve("child"), "hello".getBytes(StandardCharsets.UTF_8));
+    DurableIOUtil.write(dir.resolve("child"), "hello".getBytes(StandardCharsets.UTF_8));
+    assert new String(Files.readAllBytes(dir.resolve("child")), StandardCharsets.UTF_8).equals("hello");
     DurableIOUtil.atomicallyDelete(dir);
     assert !Files.exists(dir);
+  }
+
+  @Test
+  public void testMove() throws IOException {
+    Path dir = Files.createTempDirectory(null);
+    DurableIOUtil.write(dir.resolve("child"), "hello".getBytes(StandardCharsets.UTF_8));
+    assert new String(Files.readAllBytes(dir.resolve("child")), StandardCharsets.UTF_8).equals("hello");
+    DurableIOUtil.move(dir.resolve("child"), dir.resolve("target"));
+    assert !Files.exists(dir.resolve("child"));
+    assert new String(Files.readAllBytes(dir.resolve("target")), StandardCharsets.UTF_8).equals("hello");
   }
 
 }
