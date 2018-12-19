@@ -12,8 +12,18 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Tests {
+
+  @Test
+  public void testClosingAfterReferenceCopy() throws Exception {
+    AtomicBoolean didClose = new AtomicBoolean(false);
+    AutoCloseable toClose = () -> didClose.set(true);
+    try (AutoCloseable ignored = toClose) {
+    }
+    assert didClose.get();
+  }
 
   @Test
   public void testOutputStreamAtomicity() throws IOException {
