@@ -8,21 +8,11 @@ import java.nio.file.DirectoryNotEmptyException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.FileAttribute;
-import java.util.EnumSet;
 import java.util.Objects;
-import java.util.Set;
 import java.util.Stack;
 
 public class DurableIOUtil {
-
-  /**
-   * Set containing exactly {@link StandardOpenOption#READ} and {@link StandardOpenOption#WRITE}.
-   * It is stored as a static member to avoid creating a short-lived object when it is needed.
-   */
-  static final Set<StandardOpenOption> READ_WRITE =
-          EnumSet.of(StandardOpenOption.READ, StandardOpenOption.WRITE);
 
   /**
    * Helper for {@link #createFolders(Path)}.
