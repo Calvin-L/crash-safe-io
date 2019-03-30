@@ -12,7 +12,7 @@ external dependencies and is easy to build from source:
 
     $ git clone https://github.com/Calvin-L/crash-safe-io.git
     $ gradle build
-    $ ls build/libs/crashsafeio-*.jar
+    $ ls build/libs/crash-safe-io-*.jar
 
 
 ## Documentation
