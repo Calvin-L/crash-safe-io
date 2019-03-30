@@ -21,7 +21,6 @@ import java.nio.file.StandardOpenOption;
  *     // deleting a file inside the directory
  * }
  *   </pre>
- * </p>
  *
  * <p>
  *   Your application might not need to make the changes durable if an exception
@@ -33,14 +32,12 @@ import java.nio.file.StandardOpenOption;
  * // deleting a file inside the directory
  * dirSync.close();
  *   </pre>
- * </p>
  *
  * <p>
  *   You should create an <code>FSyncDirectoryOnClose</code> instance
  *   <em>before</em> making changes to the directory that you need durable.
  *   The {@link #close()} method only promises to make durable the changes
  *   made since the <code>FSyncDirectoryOnClose</code> object was constructed.
- * </p>
  *
  * <p>
  *   The "construct-before-modify" restriction exists because the contract for
@@ -56,14 +53,12 @@ import java.nio.file.StandardOpenOption;
  *   of the channel durable.  This class constructs a channel in its constructor,
  *   so constructing an <code>FSyncDirectoryOnClose</code> before making changes
  *   to the directory ensures that you satisfy the contract.
- * </p>
  *
  * <p>
  *   Caveats: Calling {@link #close()} only makes <em>direct</em> changes to
  *   the directory durable; changes to subdirectories may not be durable.
- * </p>
  *
- * @see DurableIOUtil#createFolders(Path)
+ * @see DurableIOUtil#createDirectories(Path)
  */
 public class FSyncDirectoryOnClose implements AutoCloseable {
 
@@ -94,10 +89,8 @@ public class FSyncDirectoryOnClose implements AutoCloseable {
    * This method only promises to make changes made since the creation of
    * this object durable.  Other changes might not be made durable.
    *
-   * <p>
-   *   Calling this method closes the <code>FSyncDirectoryOnClose</code>
+   * <p>Calling this method closes the <code>FSyncDirectoryOnClose</code>
    *   instance.  This method should not be called more than once.
-   * </p>
    *
    * @see FSyncDirectoryOnClose
    * @throws java.nio.channels.ClosedChannelException if this object was already closed

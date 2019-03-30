@@ -12,23 +12,36 @@ import java.nio.file.attribute.FileAttribute;
 import java.util.Objects;
 import java.util.Stack;
 
+/**
+ * Static methods for durable I/O.  The methods mirror those in {@link Files}, but offer stronger
+ * guarantees.
+ */
 public class DurableIOUtil {
 
   /** Utility class is not to be instantiated */
   private DurableIOUtil() { }
 
   /**
-   * Helper for {@link #createFolders(Path)}.
-   * <p>Precondition: <code>path</code> durably exists and is not a symlink.
-   * <p>Precondition: <code>folderName</code> does not contain any path separators (e.g. / on unix).
-   * <p>Postcondition: the folder <code>folderName</code> durably exists.  The modification time
+   * Helper for {@link #createDirectories(Path)}.
+   *
+   * <p>
+   *   Precondition: <code>path</code> durably exists and is not a symlink.
+   *
+   * <p>
+   *   Precondition: <code>folderName</code> does not contain any path separators (e.g. / on unix).
+   *
+   * <p>
+   *   Postcondition: the folder <code>folderName</code> durably exists.  The modification time
    *   and access time of the parent path may have been modified, whether the parent is a
    *   folder or regular file.  The changes to the modification and access time of the parent
    *   path are durably saved.  The access time of any prefix of the parent path may have been
    *   modified; those changes are NOT durably saved.
-   * <p>Crash safety: <code>folderName</code> will either exist or not exist.
+   *
+   * <p>
+   *   Crash safety: <code>folderName</code> will either exist or not exist.
    *   Independently, the modification time and access time of the parent path may
    *   have been modified, whether the parent is a folder or regular file.
+   *
    * @param path - the parent folder
    * @param folderName - the name of a folder to create within the parent
    * @return A Path equivalent to
@@ -42,7 +55,7 @@ public class DurableIOUtil {
    * @throws IOException if an I/O exception occurs while this procedure is running, for
    *   instance because another process concurrently deleted the path
    */
-  private static Path createOneFolder(Path path, String folderName) throws IOException {
+  private static Path createOneDirectory(Path path, String folderName) throws IOException {
     Path result = path.resolve(folderName);
 
     // Do this check FIRST in case the target exists but we don't have write access to
@@ -62,22 +75,31 @@ public class DurableIOUtil {
    * Create the folder at the given path, as well as any intermediate folders.
    * This procedure is similar to {@link Files#createDirectories(Path, FileAttribute[])},
    * but offers stronger durability and crash safety guarantees.
-   * <p>Precondition: the filesystem that <code>folderToCreate</code> would reside on
+   *
+   * <p>
+   *   Precondition: the filesystem that <code>folderToCreate</code> would reside on
    *   if it existed must be a local filesystem.  If it is not then this procedure will
    *   still create the folders and return successfully, but it offers no durability
    *   guarantee.
-   * <p>Precondition: all prefixes of the <code>folderToCreate</code> path that already
+   *
+   * <p>
+   *   Precondition: all prefixes of the <code>folderToCreate</code> path that already
    *   exist <em>durably</em> exist.  If they do not, then this procedure will
    *   still create the folders and return successfully, but it offers no durability
    *   guarantee.
-   * <p>Postcondition: <code>folderToCreate</code> durably exists and is a directory.
+   *
+   * <p>
+   *   Postcondition: <code>folderToCreate</code> durably exists and is a directory.
    *   The modification and access times of pre-existing components of the folder might
    *   have changed; only the changes to the most-specific pre-existing component of the
    *   path are durably saved.
-   * <p>Crash safety: <code>folderName</code> will either exist or not exist.
+   *
+   * <p>
+   *   Crash safety: <code>folderName</code> will either exist or not exist.
    *   This function may have created some, but not all, of the necessary folders.
    *   Independently, the modification time and access time of the path components may
    *   have been modified.
+   *
    * @param folderToCreate an absolute or relative path of a folder to create
    * @throws java.nio.file.FileAlreadyExistsException if another process created a
    *   folder or file with the same name as a component of <code>folderToCreate</code>
@@ -88,12 +110,12 @@ public class DurableIOUtil {
    * @throws IOException if an I/O exception occurs while this procedure is running, for
    *   instance because another process concurrently deleted part of the path
    */
-  public static void createFolders(Path folderToCreate) throws IOException {
+  public static void createDirectories(Path folderToCreate) throws IOException {
     Objects.requireNonNull(folderToCreate);
     folderToCreate = folderToCreate.toAbsolutePath();
     Path root = folderToCreate.getRoot(); // we have to assume the filesystem root durably exists
     for (int i = 0; i < folderToCreate.getNameCount(); ++i) {
-      root = createOneFolder(root, folderToCreate.getName(i).toString());
+      root = createOneDirectory(root, folderToCreate.getName(i).toString());
     }
   }
 
@@ -104,9 +126,12 @@ public class DurableIOUtil {
    * it may arbitrarily corrupt <code>path</code> or its children.
    * It may or may not change the modification and access times of
    * <code>path</code>'s parent.
+   *
    * @param path the path to delete
-   * @throws SecurityException
-   * @throws IOException
+   * @throws SecurityException if there is a security manager installed and its
+   *         {@link SecurityManager#checkDelete(String)} method returns false for any entry in the
+   *         tree
+   * @throws IOException if an I/O error occurs
    */
   private static void deleteTreeUnsafe(Path path) throws IOException {
     Stack<Path> toDelete = new Stack<>();
@@ -127,13 +152,19 @@ public class DurableIOUtil {
    * Note that this procedure does not <em>securely</em> delete the tree; like
    * most deletion procedures, it may be possible to read the bytes of the deleted
    * files from disk even after this function returns.
-   * <p>Precondition: if <code>path</code> does not exist, then it is durably
+   *
+   * <p>
+   *   Precondition: if <code>path</code> does not exist, then it is durably
    *   missing
-   * <p>Postcondition: <code>path</code> has been durably deleted and its parent
+   *
+   * <p>
+   *   Postcondition: <code>path</code> has been durably deleted and its parent
    *   is left intact.  The modification and access times of <code>path</code>'s
    *   parent may have been changed.  If <code>path</code> names a symbolic link,
    *   then the link (and not its target) is deleted.
-   * <p>Crash safety: this procedure either deletes <code>path</code> and its
+   *
+   * <p>
+   *   Crash safety: this procedure either deletes <code>path</code> and its
    *   entire subtree or leaves <code>path</code> completely untouched.  If the
    *   JVM crashes but the system stays up then this procedure may leave behind
    *   possibly-corrupted "junk" files in a temporary folder somewhere on the
@@ -141,11 +172,14 @@ public class DurableIOUtil {
    *   otherwise there is no available mechanism to locate and delete the
    *   leftover junk files.  If <code>path</code> names a file or a folder with
    *   no contents, then no junk files will be created.
+   *
    * @param path the path to delete
-   * @throws SecurityException
+   * @throws SecurityException if there is a security manager that prevents deletion of
+   *   any file in the tree.  Note that the tree might still have been moved if this
+   *   exception is thrown, making it appear "deleted".
    * @throws java.nio.file.AtomicMoveNotSupportedException if the underlying
    *   filesystem cannot atomically move the named path to a temporary location
-   * @throws IOException
+   * @throws IOException if an I/O error occurs
    */
   public static void atomicallyDelete(Path path) throws IOException {
     Path tmp = null;
@@ -169,16 +203,23 @@ public class DurableIOUtil {
   }
 
   /**
-   * Atomically rename a file.
-   * <p>Precondition: <code>source</code> exists
-   * <p>Postcondition: <code>source</code> does not exist and <code>target</code>
+   * Atomically move or rename a file from one path to another.
+   *
+   * <p>
+   *   Precondition: <code>source</code> exists
+   *
+   * <p>
+   *   Postcondition: <code>source</code> does not exist and <code>target</code>
    *   has the original contents of <code>source</code>
-   * <p>Crash safety: the target is either atomically overwritten or not.  If this
+   *
+   * <p>
+   *   Crash safety: the target is either atomically overwritten or not.  If this
    *   function returns then the rename has been durably saved.  On some systems it
    *   may be possible to observe both the source and destination existing after a
    *   hardware crash, although modern filesystems do their best to prevent this.
+   *
    * @param source the source name
-   * @param target the target name (NOTE: if this is an empty directory, then it is
+   * @param target the target name (NOTE: if this is a directory, then it is
    *               overwritten, rather than moving the source into the directory.
    *               This is a difference from the UNIX <code>mv</code> utility.)
    * @throws java.nio.file.AtomicMoveNotSupportedException if the system does not
@@ -204,11 +245,14 @@ public class DurableIOUtil {
    * Identical to {@link #move(Path, Path)}, but does not promise that the source
    * file is durably deleted after completion.  In many cases (for instance, when
    * the source file is a temporary file), this is perfectly fine.
-   * @param source
-   * @param target
-   * @throws IOException
+   *
+   * @param source the source name
+   * @param target the target name (NOTE: if this is a directory, then it is
+   *               overwritten, rather than moving the source into the directory.
+   *               This is a difference from the UNIX <code>mv</code> utility.)
+   * @throws IOException if an I/O error occurs
    */
-  public static void moveWithoutPromisingSoureDeletion(Path source, Path target) throws IOException {
+  public static void moveWithoutPromisingSourceDeletion(Path source, Path target) throws IOException {
     try (FSyncDirectoryOnClose ignored = new FSyncDirectoryOnClose(target.getParent())) {
       Files.move(source, target, StandardCopyOption.ATOMIC_MOVE);
     }
@@ -221,20 +265,39 @@ public class DurableIOUtil {
    * <p>
    *   Calling this method is equivalent to calling
    *   <code>{@link #write(Path, InputStream) write}(file, new {@link java.io.ByteArrayInputStream ByteArrayInputStream}(bytes))</code>,
-   *   but has slightly better performance since it does not read the bytes
-   *   into a local buffer before writing them to the file.
-   * </p>
+   *   but has slightly better performance since it does not use an intermediate buffer.
+   *
    * @param file the file to create or overwrite
    * @param bytes the bytes to write
-   * @throws IOException
+   * @throws IOException if an I/O error occurs
    */
   public static void write(Path file, byte[] bytes) throws IOException {
     try (OutputStream out = new AtomicDurableOutputStream(file)) {
       out.write(bytes);
-      createFolders(file.getParent());
+      createDirectories(file.getParent());
     }
   }
 
+  /**
+   * Write some bytes to a file, creating the file and all necessary intermediate directories if
+   * they do not exist.
+   *
+   * <p>
+   *   Crash safety: intermediate directories are not created atomically.  It is possible to
+   *   observe some or all of the intermediate directories without the final file while this
+   *   procedure is in progress, or if the system crashes, or if this method throws an exception.
+   *   If you need to achieve atomicity, construct the entire tree in a temporary location and
+   *   then {@link #move(Path, Path) move} it into place.
+   *
+   * <p>
+   *   Performance note: it is <em>not</em> beneficial to wrap the input stream in a
+   *   {@link java.io.BufferedInputStream} since this method uses its own internal buffer.
+   *   However, doing so does not impair performance either.
+   *
+   * @param file the file to create or overwrite
+   * @param data the bytes to write
+   * @throws IOException if an I/O error occurs
+   */
   public static void write(Path file, InputStream data) throws IOException {
     byte[] buffer = new byte[1024 * 8];
     try (OutputStream out = new BufferedOutputStream(new AtomicDurableOutputStream(file))) {
@@ -245,7 +308,7 @@ public class DurableIOUtil {
           out.write(buffer, 0, nread);
         }
       } while (nread >= 0);
-      createFolders(file.getParent());
+      createDirectories(file.getParent());
     }
   }
 

@@ -51,7 +51,7 @@ public class Tests {
   @Test
   public void testCreateFolders() throws IOException {
     Path out = Files.createTempDirectory(null).resolve(Paths.get("a", "b", "c"));
-    DurableIOUtil.createFolders(out);
+    DurableIOUtil.createDirectories(out);
     assert Files.isDirectory(out);
   }
 
