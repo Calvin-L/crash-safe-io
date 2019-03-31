@@ -9,7 +9,7 @@ import java.nio.file.Path;
 
 /**
  * An output stream similar to {@link FileOutputStream}, but the file is only created when the
- * stream is closed.
+ * stream is closed.  When it is created, it is created atomically and durably.
  *
  * <p>
  *   Performance notes: the bytes are written to a temporary file, so instances of this class do
