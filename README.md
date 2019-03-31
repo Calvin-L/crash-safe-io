@@ -49,7 +49,8 @@ cache and was not flushed to the physical hard drive.
 
   - `DurableIOUtil` contains static methods for common filesystem operations:
     - `write(path, data)` writes a file atomically and durably
-    - `createFolders(path)` durably creates a folder and all intermediate folders
+    - `createDirectories(path)` durably creates a directory and all
+      intermediate directories
     - `atomicallyDelete(path)` atomically and durably deletes an entire subtree
     - `move(source, target)` atomically and durably renames the source file to
       the target file

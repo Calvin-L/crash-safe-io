@@ -49,7 +49,7 @@ public class Tests {
   }
 
   @Test
-  public void testCreateFolders() throws IOException {
+  public void testCreateDirectories() throws IOException {
     Path out = Files.createTempDirectory(null).resolve(Paths.get("a", "b", "c"));
     DurableIOUtil.createDirectories(out);
     assert Files.isDirectory(out);
