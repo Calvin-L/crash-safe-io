@@ -286,8 +286,8 @@ public class DurableIOUtil {
    *   Crash safety: intermediate directories are not created atomically.  It is possible to
    *   observe some or all of the intermediate directories without the final file while this
    *   procedure is in progress, or if the system crashes, or if this method throws an exception.
-   *   If you need to achieve atomicity, construct the entire tree in a temporary location and
-   *   then {@link #move(Path, Path) move} it into place.
+   *   If you need to achieve atomicity, durably construct the entire tree in a temporary location
+   *   and then {@link #move(Path, Path) move} it into place.
    *
    * <p>
    *   Performance note: it is <em>not</em> beneficial to wrap the input stream in a
