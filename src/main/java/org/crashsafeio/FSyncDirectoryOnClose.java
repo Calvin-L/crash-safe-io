@@ -55,6 +55,18 @@ import java.nio.file.StandardOpenOption;
  *   to the directory ensures that you satisfy the contract.
  *
  * <p>
+ *   In fact, the "SINCE THIS CHANNEL WAS CREATED" qualifier is not just
+ *   weasely wording in the library documentation.  It is based on real
+ *   behavior in Linux and other operating systems.  PostgreSQL's
+ *   "checkpointer" thread is an infamous example:
+ *   <blockquote>
+ *     the checkpointer will not see any errors that happened before it opened
+ *     the file. If something bad happens before the checkpointer's open()
+ *     call, the subsequent fsync() call will return successfully.
+ *   </blockquote>
+ *   (source: https://lwn.net/Articles/752063/)
+ *
+ * <p>
  *   Caveats: Calling {@link #close()} only makes <em>direct</em> changes to
  *   the directory durable; changes to subdirectories may not be durable.
  *
