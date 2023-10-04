@@ -1,9 +1,13 @@
 apply plugin: "java"
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
+apply plugin: "jacoco"
+
 version = "0.1-beta"
 
-apply plugin: "jacoco"
+java {
+    sourceCompatibility = 1.8
+    targetCompatibility = 1.8
+}
+
 test {
     useTestNG()
 }
