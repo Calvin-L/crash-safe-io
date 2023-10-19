@@ -277,9 +277,10 @@ public class DurableIOUtil {
    * @throws IOException if an I/O error occurs
    */
   public static void write(Path file, byte[] bytes) throws IOException {
-    try (OutputStream out = new AtomicDurableOutputStream(file)) {
+    try (AtomicDurableOutputStream out = new AtomicDurableOutputStream(file)) {
       out.write(bytes);
       createDirectories(file.getParent());
+      out.commit();
     }
   }
 
@@ -305,7 +306,7 @@ public class DurableIOUtil {
    */
   public static void write(Path file, InputStream data) throws IOException {
     byte[] buffer = new byte[1024 * 8];
-    try (OutputStream out = new BufferedOutputStream(new AtomicDurableOutputStream(file))) {
+    try (AtomicDurableOutputStream out = new AtomicDurableOutputStream(file)) {
       int nread;
       do {
         nread = data.read(buffer);
@@ -314,6 +315,7 @@ public class DurableIOUtil {
         }
       } while (nread >= 0);
       createDirectories(file.getParent());
+      out.commit();
     }
   }
 

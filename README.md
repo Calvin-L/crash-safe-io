@@ -55,7 +55,7 @@ cache and was not flushed to the physical hard drive.
     - `move(source, target)` atomically and durably renames the source file to
       the target file
   - `AtomicDurableOutputStream` is similar to [`FileOutputStream`](https://docs.oracle.com/javase/8/docs/api/java/io/FileOutputStream.html),
-    but only creates its file atomically and durably when `close()` is called.
+    but only creates its file atomically and durably when `commit()` is called.
 
 
 ## Caveats

@@ -33,7 +33,7 @@ public class Tests {
     r.nextBytes(bytes);
 
     Path out = Files.createTempDirectory(null).resolve("somefile");
-    try (OutputStream stream = new BufferedOutputStream(new AtomicDurableOutputStream(out))) {
+    try (AtomicDurableOutputStream stream = new AtomicDurableOutputStream(out)) {
       int nwritten = 0;
       while (nwritten < bytes.length) {
         int toWrite = Math.min(bytes.length - nwritten, bytes.length / 4);
@@ -41,11 +41,29 @@ public class Tests {
         nwritten += toWrite;
         assert !Files.exists(out);
       }
+      stream.commit();
     }
     assert Files.exists(out);
     assert Arrays.equals(Files.readAllBytes(out), bytes);
     Files.delete(out);
     Files.delete(out.getParent());
+  }
+
+  @Test
+  public void testOutputStreamFailure() throws IOException {
+    byte[] bytes = new byte[1024];
+    Random r = new Random(33L);
+    r.nextBytes(bytes);
+
+    Path out = Files.createTempDirectory(null).resolve("somefile");
+    try (AtomicDurableOutputStream stream = new AtomicDurableOutputStream(out)) {
+      stream.write(bytes);
+      if (true) throw new RuntimeException("!");
+      stream.commit();
+    } catch (Exception ignored) {
+    }
+
+    assert !Files.exists(out);
   }
 
   @Test
