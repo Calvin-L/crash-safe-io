@@ -65,8 +65,9 @@ public class DurableIOUtil {
       return result.toRealPath();
     }
 
-    try (FSyncDirectoryOnClose ignored = new FSyncDirectoryOnClose(path)) {
+    try (DirectoryModificationScope scope = new DirectoryModificationScope(path)) {
       Files.createDirectory(result);
+      scope.commit();
     }
     return result;
   }
@@ -183,7 +184,7 @@ public class DurableIOUtil {
    */
   public static void atomicallyDelete(Path path) throws IOException {
     Path tmp = null;
-    try (FSyncDirectoryOnClose ignored = new FSyncDirectoryOnClose(path.getParent())) {
+    try (DirectoryModificationScope scope = new DirectoryModificationScope(path.getParent())) {
       try {
         Files.deleteIfExists(path);
       } catch (DirectoryNotEmptyException ignoredException) {
@@ -193,6 +194,7 @@ public class DurableIOUtil {
         // about preserving the target file.
         Files.move(path, tmp.resolve("thingToDelete"), StandardCopyOption.ATOMIC_MOVE);
       }
+      scope.commit();
     }
 
     // This might be very slow. Putting it after the force() call makes it
@@ -235,9 +237,11 @@ public class DurableIOUtil {
   public static void move(Path source, Path target) throws IOException {
     // Javadocs are vague about how ATOMIC_MOVE behaves.
     // See https://stackoverflow.com/questions/3764822/how-to-durably-rename-a-file-in-posix
-    try (FSyncDirectoryOnClose ignored1 = new FSyncDirectoryOnClose(source.getParent());
-         FSyncDirectoryOnClose ignored2 = new FSyncDirectoryOnClose(target.getParent())) {
+    try (DirectoryModificationScope scope1 = new DirectoryModificationScope(source.getParent());
+         DirectoryModificationScope scope2 = new DirectoryModificationScope(target.getParent())) {
       Files.move(source, target, StandardCopyOption.ATOMIC_MOVE);
+      scope1.commit();
+      scope2.commit();
     }
   }
 
@@ -253,8 +257,9 @@ public class DurableIOUtil {
    * @throws IOException if an I/O error occurs
    */
   public static void moveWithoutPromisingSourceDeletion(Path source, Path target) throws IOException {
-    try (FSyncDirectoryOnClose ignored = new FSyncDirectoryOnClose(target.getParent())) {
+    try (DirectoryModificationScope scope = new DirectoryModificationScope(target.getParent())) {
       Files.move(source, target, StandardCopyOption.ATOMIC_MOVE);
+      scope.commit();
     }
   }
 
