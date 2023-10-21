@@ -18,12 +18,12 @@ public class PhysicalFilesystem implements Filesystem<PhysicalDirectory, Physica
 
   @Override
   public Path createTempDirectory() throws IOException {
-    return Files.createTempDirectory(null);
+    return Files.createTempDirectory("");
   }
 
   @Override
   public Path createTempFile() throws IOException {
-    return Files.createTempFile(null, null);
+    return Files.createTempFile("", "");
   }
 
   @Override

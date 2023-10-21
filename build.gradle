@@ -1,11 +1,26 @@
+plugins {
+    // Checker Framework pluggable type-checking
+    id "org.checkerframework" version "0.6.34"
+}
+
 apply plugin: "java"
 apply plugin: "jacoco"
+apply plugin: "org.checkerframework"
 
 version = "0.1-beta"
 
 java {
     sourceCompatibility = 17
     targetCompatibility = 17
+}
+
+checkerFramework {
+    checkers = [
+        "org.checkerframework.checker.nullness.NullnessChecker",
+    ]
+    extraJavacArgs = [
+        "-ArequirePrefixInWarningSuppressions",
+    ]
 }
 
 test {

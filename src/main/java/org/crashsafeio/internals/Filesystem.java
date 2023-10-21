@@ -19,15 +19,50 @@ public interface Filesystem<D extends DirectoryHandle, F extends FileHandle> {
 
   default void deleteIfExists(Path path) throws IOException {
     path = path.toAbsolutePath();
-    try (D dir = openDirectory(path.getParent())) {
-      unlink(dir, path.getFileName().toString());
+
+    Path parentPath = path.getParent();
+    if (parentPath == null) {
+      throw new IllegalArgumentException("Path has no parent: " + path);
+    }
+
+    Path fileName = path.getFileName();
+    if (fileName == null) {
+      throw new IllegalArgumentException("Path does not reference a filename: " + path);
+    }
+
+    try (D dir = openDirectory(parentPath)) {
+      unlink(dir, fileName.toString());
     }
   }
 
   default void moveAtomically(Path source, Path target) throws IOException {
-    try (D sourceParent = openDirectory(source.getParent());
-         D targetParent = openDirectory(target.getParent())) {
-      rename(sourceParent, source.getFileName().toString(), targetParent, target.getFileName().toString());
+    source = source.toAbsolutePath();
+
+    Path sourceParentPath = source.getParent();
+    if (sourceParentPath == null) {
+      throw new IllegalArgumentException("Source path has no parent: " + source);
+    }
+
+    Path sourceFileName = source.getFileName();
+    if (sourceFileName == null) {
+      throw new IllegalArgumentException("Source path has no filename: " + source);
+    }
+
+    target = target.toAbsolutePath();
+
+    Path targetParentPath = target.getParent();
+    if (targetParentPath == null) {
+      throw new IllegalArgumentException("Target path has no parent: " + target);
+    }
+
+    Path targetFileName = target.getFileName();
+    if (targetFileName == null) {
+      throw new IllegalArgumentException("Target path has no filename: " + target);
+    }
+
+    try (D sourceParent = openDirectory(sourceParentPath);
+         D targetParent = openDirectory(targetParentPath)) {
+      rename(sourceParent, sourceFileName.toString(), targetParent, targetFileName.toString());
     }
   }
 

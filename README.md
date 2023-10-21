@@ -8,7 +8,7 @@ offer much stronger guarantees than the standard library routines, but incur
 more I/O performance overhead.
 
 This library is not currently available from any major repos, but it has no
-external dependencies and is easy to build from source:
+run-time dependencies and is easy to build from source:
 
     $ git clone https://github.com/Calvin-L/crash-safe-io.git
     $ gradle build

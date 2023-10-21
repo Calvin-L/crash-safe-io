@@ -14,6 +14,7 @@ import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Test
+@SuppressWarnings("nullness:argument")
 public class PhysicalTest {
 
   @Test

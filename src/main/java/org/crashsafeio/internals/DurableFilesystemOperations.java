@@ -62,6 +62,9 @@ public record DurableFilesystemOperations<D extends DirectoryHandle, F extends F
   public void createDirectories(Path folderToCreate) throws IOException {
     folderToCreate = folderToCreate.toAbsolutePath();
     Path root = folderToCreate.getRoot(); // we have to assume the filesystem root durably exists
+    if (root == null) {
+      throw new IllegalArgumentException("Path has no root: " + folderToCreate);
+    }
     for (int i = 0; i < folderToCreate.getNameCount(); ++i) {
       root = createOneDirectory(root, folderToCreate.getName(i).toString());
     }
@@ -97,10 +100,22 @@ public record DurableFilesystemOperations<D extends DirectoryHandle, F extends F
   }
 
   public void atomicallyDelete(Path path) throws IOException {
+    path = path.toAbsolutePath();
+
+    Path parentPath = path.getParent();
+    if (parentPath == null) {
+      throw new IllegalArgumentException("Path has no parent: " + path);
+    }
+
+    Path fileName = path.getFileName();
+    if (fileName == null) {
+      throw new IllegalArgumentException("Path does not reference a filename: " + path);
+    }
+
     Path tmp = null;
-    try (D parent = underlyingFilesystem.openDirectory(path.getParent())) {
+    try (D parent = underlyingFilesystem.openDirectory(parentPath)) {
       try {
-        underlyingFilesystem.unlink(parent, path.getFileName().toString());
+        underlyingFilesystem.unlink(parent, fileName.toString());
       } catch (DirectoryNotEmptyException ignoredException) {
         // TODO: I would like to have a primitive to create a temporary folder on the same filesystem
         tmp = underlyingFilesystem.createTempDirectory();
@@ -121,35 +136,94 @@ public record DurableFilesystemOperations<D extends DirectoryHandle, F extends F
   public void move(Path source, Path target) throws IOException {
     // Javadocs are vague about how ATOMIC_MOVE behaves.
     // See https://stackoverflow.com/questions/3764822/how-to-durably-rename-a-file-in-posix
-    try (D sourceParent = underlyingFilesystem.openDirectory(source.getParent());
-         D targetParent = underlyingFilesystem.openDirectory(target.getParent())) {
+
+    source = source.toAbsolutePath();
+
+    Path sourceParentPath = source.getParent();
+    if (sourceParentPath == null) {
+      throw new IllegalArgumentException("Source path has no parent: " + source);
+    }
+
+    Path sourceFileName = source.getFileName();
+    if (sourceFileName == null) {
+      throw new IllegalArgumentException("Source path has no filename: " + source);
+    }
+
+    target = target.toAbsolutePath();
+
+    Path targetParentPath = target.getParent();
+    if (targetParentPath == null) {
+      throw new IllegalArgumentException("Target path has no parent: " + target);
+    }
+
+    Path targetFileName = target.getFileName();
+    if (targetFileName == null) {
+      throw new IllegalArgumentException("Target path has no filename: " + target);
+    }
+
+    try (D sourceParent = underlyingFilesystem.openDirectory(sourceParentPath);
+         D targetParent = underlyingFilesystem.openDirectory(targetParentPath)) {
       underlyingFilesystem.rename(
-          sourceParent, source.getFileName().toString(),
-          targetParent, target.getFileName().toString());
+          sourceParent, sourceFileName.toString(),
+          targetParent, targetFileName.toString());
       underlyingFilesystem.sync(targetParent);
       underlyingFilesystem.sync(sourceParent);
     }
   }
 
   public void moveWithoutPromisingSourceDeletion(Path source, Path target) throws IOException {
-    try (D sourceParent = underlyingFilesystem.openDirectory(source.getParent());
-         D targetParent = underlyingFilesystem.openDirectory(target.getParent())) {
+    source = source.toAbsolutePath();
+
+    Path sourceParentPath = source.getParent();
+    if (sourceParentPath == null) {
+      throw new IllegalArgumentException("Source path has no parent: " + source);
+    }
+
+    Path sourceFileName = source.getFileName();
+    if (sourceFileName == null) {
+      throw new IllegalArgumentException("Source path has no filename: " + source);
+    }
+
+    target = target.toAbsolutePath();
+
+    Path targetParentPath = target.getParent();
+    if (targetParentPath == null) {
+      throw new IllegalArgumentException("Target path has no parent: " + target);
+    }
+
+    Path targetFileName = target.getFileName();
+    if (targetFileName == null) {
+      throw new IllegalArgumentException("Target path has no filename: " + target);
+    }
+
+    try (D sourceParent = underlyingFilesystem.openDirectory(sourceParentPath);
+         D targetParent = underlyingFilesystem.openDirectory(targetParentPath)) {
       underlyingFilesystem.rename(
-          sourceParent, source.getFileName().toString(),
-          targetParent, target.getFileName().toString());
+          sourceParent, sourceFileName.toString(),
+          targetParent, targetFileName.toString());
       underlyingFilesystem.sync(targetParent);
     }
   }
 
   public void write(Path file, byte[] bytes) throws IOException {
+    Path parentPath = file.toAbsolutePath().getParent();
+    if (parentPath == null) {
+      throw new IllegalArgumentException("Path has no parent: " + file);
+    }
+
     try (var out = new InternalAtomicDurableOutputStream<>(this, file)) {
       out.write(bytes);
-      createDirectories(file.getParent());
+      createDirectories(parentPath);
       out.commit();
     }
   }
 
   public void write(Path file, InputStream data) throws IOException {
+    Path parentPath = file.toAbsolutePath().getParent();
+    if (parentPath == null) {
+      throw new IllegalArgumentException("Path has no parent: " + file);
+    }
+
     byte[] buffer = new byte[1024 * 8];
     try (var out = new InternalAtomicDurableOutputStream<>(this, file)) {
       int nread;
@@ -159,7 +233,7 @@ public record DurableFilesystemOperations<D extends DirectoryHandle, F extends F
           out.write(buffer, 0, nread);
         }
       } while (nread >= 0);
-      createDirectories(file.getParent());
+      createDirectories(parentPath);
       out.commit();
     }
   }

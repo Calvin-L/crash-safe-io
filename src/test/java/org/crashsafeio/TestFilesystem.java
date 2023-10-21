@@ -1,5 +1,6 @@
 package org.crashsafeio;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.crashsafeio.internals.DirectoryHandle;
 import org.crashsafeio.internals.FileHandle;
 import org.crashsafeio.internals.Filesystem;
@@ -69,10 +70,10 @@ public class TestFilesystem implements Filesystem<TestFilesystem.Dir, TestFilesy
     @Override
     public void remap(Map<INode, INode> remap) {
       for (var entry : volatileEntries.entrySet()) {
-        entry.setValue(remap.get(entry.getValue()));
+        entry.setValue(remap.getOrDefault(entry.getValue(), entry.getValue()));
       }
       for (var entry : durableEntries.entrySet()) {
-        entry.setValue(remap.get(entry.getValue()));
+        entry.setValue(remap.getOrDefault(entry.getValue(), entry.getValue()));
       }
     }
 
@@ -180,7 +181,7 @@ public class TestFilesystem implements Filesystem<TestFilesystem.Dir, TestFilesy
     return Path.of("/" + name);
   }
 
-  public static INode get(Dir root, Path path) {
+  public static @Nullable INode get(Dir root, Path path) {
     if (!path.isAbsolute()) {
       path = path.toAbsolutePath();
     }
@@ -188,9 +189,13 @@ public class TestFilesystem implements Filesystem<TestFilesystem.Dir, TestFilesy
     if (parent == null) {
       return root;
     }
+    Path fileName = path.getFileName();
+    if (fileName == null) {
+      return null;
+    }
     INode parentNode = get(root, parent);
     if (parentNode instanceof Dir d) {
-      return d.volatileEntries.get(path.getFileName().toString());
+      return d.volatileEntries.get(fileName.toString());
     }
     return null;
   }
@@ -325,6 +330,10 @@ public class TestFilesystem implements Filesystem<TestFilesystem.Dir, TestFilesy
       iNode.remap(remap);
     }
 
-    return (Dir)remap.get(root);
+    if (remap.get(root) instanceof Dir newRoot) {
+      return newRoot;
+    } else {
+      throw new IllegalStateException("remap does not contain root; it should have been in reachableINodes()!");
+    }
   }
 }
