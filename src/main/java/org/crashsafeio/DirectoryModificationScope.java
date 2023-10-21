@@ -1,10 +1,12 @@
 package org.crashsafeio;
 
+import org.crashsafeio.internals.PhysicalDirectory;
+import org.crashsafeio.internals.PhysicalFilesystem;
+
 import java.io.IOException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.FileChannel;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 
 /**
  * An object that makes changes to a directory durable when {@link #commit()}
@@ -85,7 +87,7 @@ public class DirectoryModificationScope implements AutoCloseable {
   // see: http://mail.openjdk.java.net/pipermail/nio-dev/2015-May/003140.html
 
   /** An open channel to the directory. */
-  private final FileChannel channel;
+  private final PhysicalDirectory fd;
 
   /**
    * Create an instance.
@@ -99,7 +101,7 @@ public class DirectoryModificationScope implements AutoCloseable {
    *    directory in read mode
    */
   public DirectoryModificationScope(Path directory) throws IOException {
-    channel = FileChannel.open(directory, StandardOpenOption.READ);
+    fd = PhysicalFilesystem.INSTANCE.openDirectory(directory);
   }
 
   /**
@@ -111,7 +113,7 @@ public class DirectoryModificationScope implements AutoCloseable {
    */
   public void commit() throws IOException {
     try {
-      channel.force(true);
+      PhysicalFilesystem.INSTANCE.sync(fd);
     } catch (ClosedChannelException e) {
       throw new IllegalStateException("DirectoryModificationScope was already closed", e);
     }
@@ -126,6 +128,7 @@ public class DirectoryModificationScope implements AutoCloseable {
    */
   @Override
   public void close() throws IOException {
-    channel.close();
+    fd.close();
   }
+
 }

@@ -1,16 +1,15 @@
 package org.crashsafeio;
 
-import java.io.BufferedOutputStream;
+import org.crashsafeio.internals.DurableFilesystemOperations;
+import org.crashsafeio.internals.PhysicalDirectory;
+import org.crashsafeio.internals.PhysicalFile;
+import org.crashsafeio.internals.PhysicalFilesystem;
+
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.file.DirectoryNotEmptyException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.FileAttribute;
-import java.util.Objects;
-import java.util.Stack;
 
 /**
  * Static methods for durable I/O.  The methods mirror those in {@link Files}, but offer stronger
@@ -21,56 +20,8 @@ public class DurableIOUtil {
   /** Utility class is not to be instantiated */
   private DurableIOUtil() { }
 
-  /**
-   * Helper for {@link #createDirectories(Path)}.
-   *
-   * <p>
-   *   Precondition: <code>path</code> durably exists and is not a symlink.
-   *
-   * <p>
-   *   Precondition: <code>folderName</code> does not contain any path separators (e.g. / on unix).
-   *
-   * <p>
-   *   Postcondition: the folder <code>folderName</code> durably exists.  The modification time
-   *   and access time of the parent path may have been modified, whether the parent is a
-   *   folder or regular file.  The changes to the modification and access time of the parent
-   *   path are durably saved.  The access time of any prefix of the parent path may have been
-   *   modified; those changes are NOT durably saved.
-   *
-   * <p>
-   *   Crash safety: <code>folderName</code> will either exist or not exist.
-   *   Independently, the modification time and access time of the parent path may
-   *   have been modified, whether the parent is a folder or regular file.
-   *
-   * @param path - the parent folder
-   * @param folderName - the name of a folder to create within the parent
-   * @return A Path equivalent to
-   *  <code>path.{@link Path#resolve(Path) resolve}(folderName)</code> that now durably
-   *  exists and contains no components that are symlinks.
-   * @throws java.nio.file.FileAlreadyExistsException if another process created a
-   *   folder or file with the same name concurrently while this procedure was running
-   * @throws SecurityException if a security manager is installed and it denies read
-   *   access to the path OR the folder did not exist and it denies write access to the
-   *   path
-   * @throws IOException if an I/O exception occurs while this procedure is running, for
-   *   instance because another process concurrently deleted the path
-   */
-  private static Path createOneDirectory(Path path, String folderName) throws IOException {
-    Path result = path.resolve(folderName);
-
-    // Do this check FIRST in case the target exists but we don't have write access to
-    // the parent, which is a very common case.
-    if (Files.isDirectory(result)) {
-      // Call .toRealPath() in case the "folder" is actually a symlink to the folder.
-      return result.toRealPath();
-    }
-
-    try (DirectoryModificationScope scope = new DirectoryModificationScope(path)) {
-      Files.createDirectory(result);
-      scope.commit();
-    }
-    return result;
-  }
+  /* package-private */ final static DurableFilesystemOperations<PhysicalDirectory, PhysicalFile> OPS =
+      new DurableFilesystemOperations<>(PhysicalFilesystem.INSTANCE);
 
   /**
    * Create the folder at the given path, as well as any intermediate folders.
@@ -112,40 +63,7 @@ public class DurableIOUtil {
    *   instance because another process concurrently deleted part of the path
    */
   public static void createDirectories(Path folderToCreate) throws IOException {
-    Objects.requireNonNull(folderToCreate);
-    folderToCreate = folderToCreate.toAbsolutePath();
-    Path root = folderToCreate.getRoot(); // we have to assume the filesystem root durably exists
-    for (int i = 0; i < folderToCreate.getNameCount(); ++i) {
-      root = createOneDirectory(root, folderToCreate.getName(i).toString());
-    }
-  }
-
-  /**
-   * Walk the tree, deleting <code>path</code> and all of its children.
-   * This procedure returns without error if the path does not exist.
-   * This procedure provides absolutely no crash safety guarantees;
-   * it may arbitrarily corrupt <code>path</code> or its children.
-   * It may or may not change the modification and access times of
-   * <code>path</code>'s parent.
-   *
-   * @param path the path to delete
-   * @throws SecurityException if there is a security manager installed and its
-   *         {@link SecurityManager#checkDelete(String)} method returns false for any entry in the
-   *         tree
-   * @throws IOException if an I/O error occurs
-   */
-  private static void deleteTreeUnsafe(Path path) throws IOException {
-    Stack<Path> toDelete = new Stack<>();
-    toDelete.push(path);
-    do {
-      path = toDelete.peek();
-      try {
-        Files.deleteIfExists(path);
-        toDelete.pop();
-      } catch (DirectoryNotEmptyException ignored) {
-        Files.list(path).forEach(toDelete::push);
-      }
-    } while (!toDelete.empty());
+    OPS.createDirectories(folderToCreate);
   }
 
   /**
@@ -183,25 +101,7 @@ public class DurableIOUtil {
    * @throws IOException if an I/O error occurs
    */
   public static void atomicallyDelete(Path path) throws IOException {
-    Path tmp = null;
-    try (DirectoryModificationScope scope = new DirectoryModificationScope(path.getParent())) {
-      try {
-        Files.deleteIfExists(path);
-      } catch (DirectoryNotEmptyException ignoredException) {
-        // TODO: I would like to have a primitive to create a temporary folder on the same filesystem
-        tmp = Files.createTempDirectory(null);
-        // NOTE: We do not need the full power of move() below since we do not care
-        // about preserving the target file.
-        Files.move(path, tmp.resolve("thingToDelete"), StandardCopyOption.ATOMIC_MOVE);
-      }
-      scope.commit();
-    }
-
-    // This might be very slow. Putting it after the force() call makes it
-    // less likely that the system crashes during this optional cleanup step.
-    if (tmp != null) {
-      deleteTreeUnsafe(tmp);
-    }
+    OPS.atomicallyDelete(path);
   }
 
   /**
@@ -235,14 +135,7 @@ public class DurableIOUtil {
    *  file does not exist
    */
   public static void move(Path source, Path target) throws IOException {
-    // Javadocs are vague about how ATOMIC_MOVE behaves.
-    // See https://stackoverflow.com/questions/3764822/how-to-durably-rename-a-file-in-posix
-    try (DirectoryModificationScope scope1 = new DirectoryModificationScope(source.getParent());
-         DirectoryModificationScope scope2 = new DirectoryModificationScope(target.getParent())) {
-      Files.move(source, target, StandardCopyOption.ATOMIC_MOVE);
-      scope1.commit();
-      scope2.commit();
-    }
+    OPS.move(source, target);
   }
 
   /**
@@ -257,10 +150,7 @@ public class DurableIOUtil {
    * @throws IOException if an I/O error occurs
    */
   public static void moveWithoutPromisingSourceDeletion(Path source, Path target) throws IOException {
-    try (DirectoryModificationScope scope = new DirectoryModificationScope(target.getParent())) {
-      Files.move(source, target, StandardCopyOption.ATOMIC_MOVE);
-      scope.commit();
-    }
+    OPS.moveWithoutPromisingSourceDeletion(source, target);
   }
 
   /**
@@ -277,11 +167,7 @@ public class DurableIOUtil {
    * @throws IOException if an I/O error occurs
    */
   public static void write(Path file, byte[] bytes) throws IOException {
-    try (AtomicDurableOutputStream out = new AtomicDurableOutputStream(file)) {
-      out.write(bytes);
-      createDirectories(file.getParent());
-      out.commit();
-    }
+    OPS.write(file, bytes);
   }
 
   /**
@@ -305,18 +191,7 @@ public class DurableIOUtil {
    * @throws IOException if an I/O error occurs
    */
   public static void write(Path file, InputStream data) throws IOException {
-    byte[] buffer = new byte[1024 * 8];
-    try (AtomicDurableOutputStream out = new AtomicDurableOutputStream(file)) {
-      int nread;
-      do {
-        nread = data.read(buffer);
-        if (nread > 0) {
-          out.write(buffer, 0, nread);
-        }
-      } while (nread >= 0);
-      createDirectories(file.getParent());
-      out.commit();
-    }
+    OPS.write(file, data);
   }
 
 }

@@ -2,10 +2,8 @@ package org.crashsafeio;
 
 import org.testng.annotations.Test;
 
-import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystemException;
 import java.nio.file.Files;
@@ -15,7 +13,8 @@ import java.util.Arrays;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class Tests {
+@Test
+public class PhysicalTest {
 
   @Test
   public void testClosingAfterReferenceCopy() throws Exception {

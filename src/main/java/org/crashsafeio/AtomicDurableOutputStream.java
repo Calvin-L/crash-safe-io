@@ -1,11 +1,11 @@
 package org.crashsafeio;
 
-import java.io.BufferedOutputStream;
-import java.io.FileDescriptor;
+import org.crashsafeio.internals.InternalAtomicDurableOutputStream;
+import org.crashsafeio.internals.PhysicalFile;
+
 import java.io.FileOutputStream;
 import java.io.FilterOutputStream;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 
 /**
@@ -33,24 +33,11 @@ import java.nio.file.Path;
  */
 public class AtomicDurableOutputStream extends FilterOutputStream {
 
-  /** The final path that will be created on {@link #close()} */
-  private final Path out;
+  private final InternalAtomicDurableOutputStream<PhysicalFile> out;
 
-  /** The location of the temporary file where bytes are written */
-  private final Path tmp;
-
-  /** The file descriptor for the open handle to {@link #tmp} */
-  private final FileDescriptor fd;
-
-  private AtomicDurableOutputStream(Path out, Path tmp, FileOutputStream outputStream) throws IOException {
-    super(new BufferedOutputStream(outputStream));
+  private AtomicDurableOutputStream(InternalAtomicDurableOutputStream<PhysicalFile> out) {
+    super(out);
     this.out = out;
-    this.tmp = tmp;
-    this.fd = outputStream.getFD();
-  }
-
-  private AtomicDurableOutputStream(Path out, Path tmp) throws IOException {
-    this(out, tmp, new FileOutputStream(tmp.toFile()));
   }
 
   /**
@@ -59,7 +46,7 @@ public class AtomicDurableOutputStream extends FilterOutputStream {
    * @throws IOException if an I/O error occurs when creating or opening a temporary file for writing
    */
   public AtomicDurableOutputStream(Path out) throws IOException {
-    this(out, Files.createTempFile(null, null));
+    this(new InternalAtomicDurableOutputStream<>(DurableIOUtil.OPS, out));
   }
 
   /**
@@ -70,31 +57,7 @@ public class AtomicDurableOutputStream extends FilterOutputStream {
    * @throws IOException if an I/O error occurs while making the changes durable
    */
   public void commit() throws IOException {
-    flush();
-    fd.sync();
-    super.close();
-    DurableIOUtil.moveWithoutPromisingSourceDeletion(tmp, out);
+    out.commit();
   }
 
-  @Override
-  public void close() throws IOException {
-    try {
-      super.close();
-    } finally {
-      bestEffortDelete(tmp);
-    }
-  }
-
-  /**
-   * Try to delete the given path.  The deletion is best-effort only: if the deletion fails,
-   * then no error will be thrown or reported.
-   *
-   * @param path the path to delete
-   */
-  private static void bestEffortDelete(Path path) {
-    try {
-      Files.deleteIfExists(path);
-    } catch (Exception ignored) {
-    }
-  }
 }
