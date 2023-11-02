@@ -1,8 +1,11 @@
 package org.crashsafeio;
 
+import org.checkerframework.checker.calledmethods.qual.EnsuresCalledMethods;
+import org.checkerframework.checker.mustcall.qual.Owning;
 import org.crashsafeio.internals.PhysicalDirectory;
 import org.crashsafeio.internals.PhysicalFilesystem;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.FileChannel;
@@ -81,13 +84,13 @@ import java.nio.file.Path;
  *
  * @see DurableIOUtil#createDirectories(Path)
  */
-public class DirectoryModificationScope implements AutoCloseable {
+public class DirectoryModificationScope implements Closeable {
 
   // see: https://stackoverflow.com/questions/7433057/is-rename-without-fsync-safe
   // see: http://mail.openjdk.java.net/pipermail/nio-dev/2015-May/003140.html
 
   /** An open channel to the directory. */
-  private final PhysicalDirectory fd;
+  private final @Owning PhysicalDirectory fd;
 
   /**
    * Create an instance.
@@ -127,6 +130,7 @@ public class DirectoryModificationScope implements AutoCloseable {
    * @throws IOException if an I/O error occurs
    */
   @Override
+  @EnsuresCalledMethods(value = "fd", methods = {"close"})
   public void close() throws IOException {
     fd.close();
   }

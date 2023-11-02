@@ -18,9 +18,11 @@ var checkerFrameworkVersion = "3.40.0"
 checkerFramework {
     checkers = [
         "org.checkerframework.checker.nullness.NullnessChecker",
+        "org.checkerframework.checker.resourceleak.ResourceLeakChecker",
     ]
     extraJavacArgs = [
         "-ArequirePrefixInWarningSuppressions",
+        "-AresourceLeakIgnoredExceptions=java.lang.Error,java.lang.NullPointerException",
     ]
 }
 

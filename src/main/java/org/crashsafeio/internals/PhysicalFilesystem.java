@@ -40,7 +40,17 @@ public class PhysicalFilesystem implements Filesystem<PhysicalDirectory, Physica
 
   @Override
   public PhysicalDirectory openDirectory(Path path) throws IOException {
-    return new PhysicalDirectory(path, FileChannel.open(path, StandardOpenOption.READ));
+    var fd = FileChannel.open(path, StandardOpenOption.READ);
+    try {
+      return new PhysicalDirectory(path, fd);
+    } catch (Exception e) {
+      try {
+        fd.close();
+      } catch (Exception onClose) {
+        e.addSuppressed(onClose);
+      }
+      throw e;
+    }
   }
 
   @Override
@@ -80,7 +90,17 @@ public class PhysicalFilesystem implements Filesystem<PhysicalDirectory, Physica
 
   @Override
   public PhysicalFile openFile(Path path) throws IOException {
-    return new PhysicalFile(new FileOutputStream(path.toFile()));
+    var stream = new FileOutputStream(path.toFile());
+    try {
+      return new PhysicalFile(stream);
+    } catch (Exception e) {
+      try {
+        stream.close();
+      } catch (Exception onClose) {
+        e.addSuppressed(onClose);
+      }
+      throw e;
+    }
   }
 
   @Override

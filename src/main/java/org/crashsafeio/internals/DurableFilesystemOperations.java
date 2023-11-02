@@ -1,5 +1,7 @@
 package org.crashsafeio.internals;
 
+import org.checkerframework.checker.mustcall.qual.MustCall;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.DirectoryNotEmptyException;
@@ -47,7 +49,7 @@ public record DurableFilesystemOperations<D extends DirectoryHandle, F extends F
   private Path createOneDirectory(Path path, String folderName) throws IOException {
     Path result = path.resolve(folderName);
 
-    try (D dir = underlyingFilesystem.openDirectory(path)) {
+    try (@MustCall("close") D dir = underlyingFilesystem.openDirectory(path)) {
       // Do this check in case the target exists but we don't have write access to
       // the parent, which is a very common case.
       if (!underlyingFilesystem.isReadableDirectory(dir, folderName)) {
@@ -113,7 +115,7 @@ public record DurableFilesystemOperations<D extends DirectoryHandle, F extends F
     }
 
     Path tmp = null;
-    try (D parent = underlyingFilesystem.openDirectory(parentPath)) {
+    try (@MustCall("close") D parent = underlyingFilesystem.openDirectory(parentPath)) {
       try {
         underlyingFilesystem.unlink(parent, fileName.toString());
       } catch (DirectoryNotEmptyException ignoredException) {
@@ -161,8 +163,8 @@ public record DurableFilesystemOperations<D extends DirectoryHandle, F extends F
       throw new IllegalArgumentException("Target path has no filename: " + target);
     }
 
-    try (D sourceParent = underlyingFilesystem.openDirectory(sourceParentPath);
-         D targetParent = underlyingFilesystem.openDirectory(targetParentPath)) {
+    try (@MustCall("close") D sourceParent = underlyingFilesystem.openDirectory(sourceParentPath);
+         @MustCall("close") D targetParent = underlyingFilesystem.openDirectory(targetParentPath)) {
       underlyingFilesystem.rename(
           sourceParent, sourceFileName.toString(),
           targetParent, targetFileName.toString());
@@ -196,8 +198,8 @@ public record DurableFilesystemOperations<D extends DirectoryHandle, F extends F
       throw new IllegalArgumentException("Target path has no filename: " + target);
     }
 
-    try (D sourceParent = underlyingFilesystem.openDirectory(sourceParentPath);
-         D targetParent = underlyingFilesystem.openDirectory(targetParentPath)) {
+    try (@MustCall("close") D sourceParent = underlyingFilesystem.openDirectory(sourceParentPath);
+         @MustCall("close") D targetParent = underlyingFilesystem.openDirectory(targetParentPath)) {
       underlyingFilesystem.rename(
           sourceParent, sourceFileName.toString(),
           targetParent, targetFileName.toString());
@@ -211,7 +213,7 @@ public record DurableFilesystemOperations<D extends DirectoryHandle, F extends F
       throw new IllegalArgumentException("Path has no parent: " + file);
     }
 
-    try (var out = new InternalAtomicDurableOutputStream<>(this, file)) {
+    try (var out = InternalAtomicDurableOutputStream.open(this, file)) {
       out.write(bytes);
       createDirectories(parentPath);
       out.commit();
@@ -225,7 +227,7 @@ public record DurableFilesystemOperations<D extends DirectoryHandle, F extends F
     }
 
     byte[] buffer = new byte[1024 * 8];
-    try (var out = new InternalAtomicDurableOutputStream<>(this, file)) {
+    try (var out = InternalAtomicDurableOutputStream.open(this, file)) {
       int nread;
       do {
         nread = data.read(buffer);

@@ -1,5 +1,9 @@
 package org.crashsafeio.internals;
 
+import org.checkerframework.checker.calledmethods.qual.EnsuresCalledMethods;
+import org.checkerframework.checker.mustcall.qual.MustCall;
+import org.checkerframework.checker.mustcall.qual.Owning;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Path;
@@ -15,9 +19,9 @@ public class AbstractFileOutputStream<F extends FileHandle> extends OutputStream
 
   private final Filesystem<?, F> fs;
 
-  private final F fd;
+  private final @Owning @MustCall("close") F fd;
 
-  public AbstractFileOutputStream(Filesystem<?, F> fs, F fd) {
+  public AbstractFileOutputStream(Filesystem<?, F> fs, @Owning @MustCall("close") F fd) {
     this.fs = fs;
     this.fd = fd;
   }
@@ -37,7 +41,9 @@ public class AbstractFileOutputStream<F extends FileHandle> extends OutputStream
     fs.write(fd, b, off, len);
   }
 
+  @SuppressWarnings({"builder:contracts.postcondition", "builder:destructor.exceptional.postcondition"}) // ???
   @Override
+  @EnsuresCalledMethods(value = "fd", methods = {"close"})
   public void close() throws IOException {
     try {
       fd.close();

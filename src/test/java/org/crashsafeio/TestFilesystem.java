@@ -1,5 +1,6 @@
 package org.crashsafeio;
 
+import org.checkerframework.checker.mustcall.qual.MustCall;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.crashsafeio.internals.DirectoryHandle;
 import org.crashsafeio.internals.FileHandle;
@@ -23,6 +24,11 @@ import java.util.UUID;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+@SuppressWarnings({
+    // All in-memory, so we can be sloppy about resources :)
+    "mustcall:override.return",
+    "builder:required.method.not.called",
+})
 public class TestFilesystem implements Filesystem<TestFilesystem.Dir, TestFilesystem.File> {
 
   public sealed interface INode permits TestFilesystem.Dir, TestFilesystem.File {
@@ -129,7 +135,7 @@ public class TestFilesystem implements Filesystem<TestFilesystem.Dir, TestFilesy
 
   private final Random random;
 
-  private final Set<Predicate<Dir>> invariants = new LinkedHashSet<>();
+  private final Set<Predicate<@MustCall({}) Dir>> invariants = new LinkedHashSet<>();
 
   public TestFilesystem(Random random) {
     this.random = random;
@@ -139,21 +145,21 @@ public class TestFilesystem implements Filesystem<TestFilesystem.Dir, TestFilesy
     return choices.get(random.nextInt(choices.size()));
   }
 
-  public void addInvariant(Predicate<Dir> invariant) {
+  public void addInvariant(Predicate<@MustCall({}) Dir> invariant) {
     if (invariants.add(invariant)) {
       checkInvariants();
     }
   }
 
   public void checkInvariants() {
-    for (var inv : invariants) {
+    for (Predicate<@MustCall({}) Dir> inv : invariants) {
       if (!inv.test(root)) {
         onInvariantFailure();
       }
     }
 
     var postCrash = crash();
-    for (var inv : invariants) {
+    for (Predicate<@MustCall({}) Dir> inv : invariants) {
       if (!inv.test(postCrash)) {
         onInvariantFailure();
       }

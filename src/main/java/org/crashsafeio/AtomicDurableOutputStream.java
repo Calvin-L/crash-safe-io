@@ -1,5 +1,7 @@
 package org.crashsafeio;
 
+import org.checkerframework.checker.mustcall.qual.NotOwning;
+import org.checkerframework.checker.mustcall.qual.Owning;
 import org.crashsafeio.internals.InternalAtomicDurableOutputStream;
 import org.crashsafeio.internals.PhysicalFile;
 
@@ -33,20 +35,22 @@ import java.nio.file.Path;
  */
 public class AtomicDurableOutputStream extends FilterOutputStream {
 
-  private final InternalAtomicDurableOutputStream<PhysicalFile> out;
+  private final @NotOwning InternalAtomicDurableOutputStream<PhysicalFile> out;
 
-  private AtomicDurableOutputStream(InternalAtomicDurableOutputStream<PhysicalFile> out) {
+  private AtomicDurableOutputStream(@Owning InternalAtomicDurableOutputStream<PhysicalFile> out) {
     super(out);
     this.out = out;
   }
 
   /**
    * Construct a new atomic durable output stream.
+   *
    * @param out the file that will be created when {@link #close()} is called
    * @throws IOException if an I/O error occurs when creating or opening a temporary file for writing
    */
+  @SuppressWarnings("builder:required.method.not.called") // need https://github.com/typetools/checker-framework/pull/6271
   public AtomicDurableOutputStream(Path out) throws IOException {
-    this(new InternalAtomicDurableOutputStream<>(DurableIOUtil.OPS, out));
+    this(InternalAtomicDurableOutputStream.open(DurableIOUtil.OPS, out));
   }
 
   /**

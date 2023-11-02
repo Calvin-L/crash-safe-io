@@ -1,5 +1,7 @@
 package org.crashsafeio.internals;
 
+import org.checkerframework.checker.mustcall.qual.MustCall;
+
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Set;
@@ -30,7 +32,7 @@ public interface Filesystem<D extends DirectoryHandle, F extends FileHandle> {
       throw new IllegalArgumentException("Path does not reference a filename: " + path);
     }
 
-    try (D dir = openDirectory(parentPath)) {
+    try (@MustCall("close") D dir = openDirectory(parentPath)) {
       unlink(dir, fileName.toString());
     }
   }
@@ -60,8 +62,8 @@ public interface Filesystem<D extends DirectoryHandle, F extends FileHandle> {
       throw new IllegalArgumentException("Target path has no filename: " + target);
     }
 
-    try (D sourceParent = openDirectory(sourceParentPath);
-         D targetParent = openDirectory(targetParentPath)) {
+    try (@MustCall("close") D sourceParent = openDirectory(sourceParentPath);
+         @MustCall("close") D targetParent = openDirectory(targetParentPath)) {
       rename(sourceParent, sourceFileName.toString(), targetParent, targetFileName.toString());
     }
   }
