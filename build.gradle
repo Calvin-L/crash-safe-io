@@ -14,7 +14,7 @@ java {
     targetCompatibility = 17
 }
 
-var checkerFrameworkVersion = "3.40.0"
+var checkerFrameworkVersion = "3.42.0"
 checkerFramework {
     checkers = [
         "org.checkerframework.checker.nullness.NullnessChecker",

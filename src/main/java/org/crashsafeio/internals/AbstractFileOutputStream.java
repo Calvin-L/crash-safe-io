@@ -41,7 +41,7 @@ public class AbstractFileOutputStream<F extends FileHandle> extends OutputStream
     fs.write(fd, b, off, len);
   }
 
-  @SuppressWarnings({"builder:contracts.postcondition", "builder:destructor.exceptional.postcondition"}) // ???
+  @SuppressWarnings({"builder:contracts.postcondition", "builder:contracts.exceptional.postcondition"}) // ???
   @Override
   @EnsuresCalledMethods(value = "fd", methods = {"close"})
   public void close() throws IOException {
