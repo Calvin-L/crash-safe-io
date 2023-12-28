@@ -4,5 +4,5 @@
 module org.crashsafeio {
   exports org.crashsafeio;
   requires java.base;
-  requires org.checkerframework.checker.qual;
+  requires static org.checkerframework.checker.qual;
 }
