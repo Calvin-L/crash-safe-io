@@ -1,8 +1,5 @@
 # crash-safe-io
 
-[![Build Status](https://travis-ci.org/Calvin-L/crash-safe-io.svg?branch=master
-)](https://travis-ci.org/Calvin-L/crash-safe-io)
-
 This is a small Java library for crash-safe file I/O.  The procedures here
 offer much stronger guarantees than the standard library routines, but incur
 more I/O performance overhead.
