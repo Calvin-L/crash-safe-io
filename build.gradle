@@ -1,6 +1,6 @@
 plugins {
     // Checker Framework pluggable type-checking
-    id "org.checkerframework" version "0.6.34"
+    id "org.checkerframework" version "0.6.49"
 }
 
 apply plugin: "java"
@@ -14,7 +14,7 @@ java {
     targetCompatibility = 17
 }
 
-var checkerFrameworkVersion = "3.42.0"
+var checkerFrameworkVersion = "3.49.0"
 checkerFramework {
     checkers = [
         "org.checkerframework.checker.nullness.NullnessChecker",

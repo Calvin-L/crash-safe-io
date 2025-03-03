@@ -48,7 +48,13 @@ public class AtomicDurableOutputStream extends FilterOutputStream {
    * @param out the file that will be created when {@link #close()} is called
    * @throws IOException if an I/O error occurs when creating or opening a temporary file for writing
    */
-  @SuppressWarnings("builder:required.method.not.called") // need https://github.com/typetools/checker-framework/pull/6271
+  // Some notes about this:
+  //  - Calls to super() are inherently awkward because we can't catch exceptions from them...
+  //    Therefore, we might have to roll our own FilterOutputStream that ensures its constructor
+  //    closes its argument on exception.
+  //  - Also CF has an untracked bug where @EnsuresCalledMethodsOnException doesn't work on
+  //    constructors. :(
+  @SuppressWarnings("builder:required.method.not.called")
   public AtomicDurableOutputStream(Path out) throws IOException {
     this(InternalAtomicDurableOutputStream.open(DurableIOUtil.OPS, out));
   }
