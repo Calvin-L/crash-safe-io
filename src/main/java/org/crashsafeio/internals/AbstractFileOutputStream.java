@@ -1,6 +1,7 @@
 package org.crashsafeio.internals;
 
 import org.checkerframework.checker.calledmethods.qual.EnsuresCalledMethods;
+import org.checkerframework.checker.calledmethods.qual.EnsuresCalledMethodsOnException;
 import org.checkerframework.checker.mustcall.qual.MustCall;
 import org.checkerframework.checker.mustcall.qual.Owning;
 
@@ -44,6 +45,7 @@ public class AbstractFileOutputStream<F extends FileHandle> extends OutputStream
   @SuppressWarnings({"builder:contracts.postcondition", "builder:contracts.exceptional.postcondition"}) // ???
   @Override
   @EnsuresCalledMethods(value = "fd", methods = {"close"})
+  @EnsuresCalledMethodsOnException(value = "fd", methods = {"close"})
   public void close() throws IOException {
     try {
       fd.close();
