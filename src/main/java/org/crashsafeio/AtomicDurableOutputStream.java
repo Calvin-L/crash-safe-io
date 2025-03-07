@@ -1,13 +1,12 @@
 package org.crashsafeio;
 
-import org.checkerframework.checker.mustcall.qual.NotOwning;
-import org.checkerframework.checker.mustcall.qual.Owning;
+import org.checkerframework.checker.mustcall.qual.MustCallAlias;
 import org.crashsafeio.internals.InternalAtomicDurableOutputStream;
-import org.crashsafeio.internals.PhysicalFile;
 
+import java.io.BufferedOutputStream;
 import java.io.FileOutputStream;
-import java.io.FilterOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.file.Path;
 
 /**
@@ -33,14 +32,7 @@ import java.nio.file.Path;
  * }
  * }</pre>
  */
-public class AtomicDurableOutputStream extends FilterOutputStream {
-
-  private final @NotOwning InternalAtomicDurableOutputStream<PhysicalFile> out;
-
-  private AtomicDurableOutputStream(@Owning InternalAtomicDurableOutputStream<PhysicalFile> out) {
-    super(out);
-    this.out = out;
-  }
+public abstract class AtomicDurableOutputStream extends BufferedOutputStream {
 
   /**
    * Construct a new atomic durable output stream.
@@ -48,15 +40,12 @@ public class AtomicDurableOutputStream extends FilterOutputStream {
    * @param out the file that will be created when {@link #close()} is called
    * @throws IOException if an I/O error occurs when creating or opening a temporary file for writing
    */
-  // Some notes about this:
-  //  - Calls to super() are inherently awkward because we can't catch exceptions from them...
-  //    Therefore, we might have to roll our own FilterOutputStream that ensures its constructor
-  //    closes its argument on exception.
-  //  - Also CF has an untracked bug where @EnsuresCalledMethodsOnException doesn't work on
-  //    constructors. :(
-  @SuppressWarnings("builder:required.method.not.called")
-  public AtomicDurableOutputStream(Path out) throws IOException {
-    this(InternalAtomicDurableOutputStream.open(DurableIOUtil.OPS, out));
+  public static AtomicDurableOutputStream open(Path out) throws IOException {
+    return InternalAtomicDurableOutputStream.open(DurableIOUtil.OPS, out);
+  }
+
+  public @MustCallAlias AtomicDurableOutputStream(@MustCallAlias OutputStream out) {
+    super(out);
   }
 
   /**
@@ -66,8 +55,6 @@ public class AtomicDurableOutputStream extends FilterOutputStream {
    *
    * @throws IOException if an I/O error occurs while making the changes durable
    */
-  public void commit() throws IOException {
-    out.commit();
-  }
+  public abstract void commit() throws IOException;
 
 }

@@ -3,8 +3,8 @@ package org.crashsafeio.internals;
 import org.checkerframework.checker.mustcall.qual.MustCall;
 import org.checkerframework.checker.mustcall.qual.NotOwning;
 import org.checkerframework.checker.mustcall.qual.Owning;
+import org.crashsafeio.AtomicDurableOutputStream;
 
-import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.nio.file.Path;
 
@@ -14,7 +14,7 @@ import java.nio.file.Path;
  *
  * @param <F>
  */
-public class InternalAtomicDurableOutputStream<F extends FileHandle> extends BufferedOutputStream {
+public class InternalAtomicDurableOutputStream<F extends FileHandle> extends AtomicDurableOutputStream {
 
   /** The final path that will be created on {@link #close()} */
   private final Path out;

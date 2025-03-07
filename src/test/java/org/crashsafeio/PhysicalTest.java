@@ -33,7 +33,7 @@ public class PhysicalTest {
     r.nextBytes(bytes);
 
     Path out = Files.createTempDirectory(null).resolve("somefile");
-    try (AtomicDurableOutputStream stream = new AtomicDurableOutputStream(out)) {
+    try (AtomicDurableOutputStream stream = AtomicDurableOutputStream.open(out)) {
       int nwritten = 0;
       while (nwritten < bytes.length) {
         int toWrite = Math.min(bytes.length - nwritten, bytes.length / 4);
@@ -56,7 +56,7 @@ public class PhysicalTest {
     r.nextBytes(bytes);
 
     Path out = Files.createTempDirectory(null).resolve("somefile");
-    try (AtomicDurableOutputStream stream = new AtomicDurableOutputStream(out)) {
+    try (AtomicDurableOutputStream stream = AtomicDurableOutputStream.open(out)) {
       stream.write(bytes);
       if (true) throw new RuntimeException("!");
       stream.commit();

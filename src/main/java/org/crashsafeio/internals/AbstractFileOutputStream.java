@@ -3,6 +3,7 @@ package org.crashsafeio.internals;
 import org.checkerframework.checker.calledmethods.qual.EnsuresCalledMethods;
 import org.checkerframework.checker.calledmethods.qual.EnsuresCalledMethodsOnException;
 import org.checkerframework.checker.mustcall.qual.MustCall;
+import org.checkerframework.checker.mustcall.qual.MustCallAlias;
 import org.checkerframework.checker.mustcall.qual.Owning;
 
 import java.io.IOException;
@@ -22,7 +23,7 @@ public class AbstractFileOutputStream<F extends FileHandle> extends OutputStream
 
   private final @Owning @MustCall("close") F fd;
 
-  public AbstractFileOutputStream(Filesystem<?, F> fs, @Owning @MustCall("close") F fd) {
+  public @MustCallAlias AbstractFileOutputStream(Filesystem<?, F> fs, @MustCallAlias F fd) {
     this.fs = fs;
     this.fd = fd;
   }
