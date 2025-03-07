@@ -16,12 +16,12 @@ import java.nio.file.Path;
  *
  * <p>
  *   Performance notes: the bytes are written to a temporary file, so instances of this class do
- *   not consume an unbounded amount of memory.  The output is buffered, so applications will
+ *   not consume an unbounded amount of memory.  The output is buffered, so clients will
  *   <em>not</em> benefit from additional layers of {@link java.io.BufferedOutputStream buffering}.
  *
  * <p>
  *   Suggested usage:
- *   <pre>
+ *   <pre>{@code
  * Path outPath = ...;
  * try (AtomicDurableOutputStream out = new AtomicDurableOutputStream(outPath)) {
  *     // write output
@@ -31,7 +31,7 @@ import java.nio.file.Path;
  *     // to durable storage by creating the file durably and atomically
  *     out.commit();
  * }
- *   </pre>
+ * }</pre>
  */
 public class AtomicDurableOutputStream extends FilterOutputStream {
 

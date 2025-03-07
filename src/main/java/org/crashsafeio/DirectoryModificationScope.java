@@ -20,7 +20,7 @@ import java.nio.file.Path;
  *
  * <p>
  *   Recommended usage:
- *   <pre>
+ *   <pre>{@code
  * Path dir = ...
  * try (DirectoryModificationScope scope = new DirectoryModificationScope(dir)) {
  *     // make a change that modifies `dir`, for instance, creating or
@@ -31,7 +31,7 @@ import java.nio.file.Path;
  *     // to durable storage
  *     scope.commit();
  * }
- *   </pre>
+ * }</pre>
  *
  * <p>
  *   Note that <code>DirectoryModificationScope</code> opens a file handle, and
